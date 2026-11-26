@@ -5,11 +5,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz6';
+  const VER = '1.15.2-ttz7';
   const LOG_URL = 'http://192.168.50.2:5000/api/tv/tizentube/log';
   function ttzLog(event, detail) {
     try {
@@ -40,15 +41,13 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
       ytlr-tv-surface-content-renderer,
       ytlr-tv-secondary-nav-renderer,
       ytlr-guide-response,
+      ytlr-background,
+      ytlr-page-background,
       .ytlr-surface-page,
+      .ytlr-browse-background,
       [class*="surface-page"] {
         background: transparent !important;
         background-color: transparent !important;
-      }
-      ytlr-watch-default,
-      .html5-video-player,
-      video {
-        background-color: #000000 !important;
       }
     `;
     (document.head || document.documentElement).appendChild(st);
