@@ -4,11 +4,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz5';
+  const VER = '1.15.2-ttz6';
   const LOG_URL = 'http://192.168.50.2:5000/api/tv/tizentube/log';
   function ttzLog(event, detail) {
     try {
@@ -29,9 +30,9 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
     st.textContent = `
       html, body, ytlr-app {
         background:
-          radial-gradient(ellipse at 16% 10%, rgba(14, 165, 233, 0.20) 0%, transparent 50%),
-          radial-gradient(ellipse at 86% 88%, rgba(99, 102, 241, 0.18) 0%, transparent 54%),
-          linear-gradient(155deg, #050914 0%, #0a142b 50%, #0d0b24 100%) !important;
+          radial-gradient(ellipse at 16% 12%, rgba(168, 85, 247, 0.28) 0%, transparent 52%),
+          radial-gradient(ellipse at 86% 86%, rgba(139, 92, 246, 0.24) 0%, transparent 55%),
+          linear-gradient(155deg, #070412 0%, #15082e 50%, #1d0a3d 100%) !important;
         background-attachment: fixed !important;
       }
       #container,
