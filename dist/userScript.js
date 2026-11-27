@@ -10,11 +10,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz11';
+  const VER = '1.15.2-ttz12';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -146,6 +147,78 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
           }
         }
       }
+      // 5. Smart Brand-New-Video Sponsor Detector (Chapter titles + Live Caption sponsor cues + Channel Pattern learning)
+      if (vid2 && !vid2.paused && isFinite(vid2.duration) && vid2.duration > 90) {
+        const ct = vid2.currentTime;
+        const sbSegs = (window.sponsorblock && Array.isArray(window.sponsorblock.segments)) ? window.sponsorblock.segments : [];
+        const hasSbSponsor = sbSegs.some(s => s && (s.category === 'sponsor' || s.category === 'selfpromo'));
+        // 5a. Auto-skip any YouTube Chapter explicitly titled Sponsor / Ad / known sponsor brand
+        if (!hasSbSponsor && window.__ttzChapters && window.__ttzChapters.length) {
+          for (const ch of window.__ttzChapters) {
+            if (ch.isSponsor && ct >= ch.start && ct < (ch.end - 0.8)) {
+              vid2.currentTime = ch.end;
+              ttzLog('chapter_sponsor_skipped', ch.title + ' ' + Math.round(ch.start) + 's->' + Math.round(ch.end) + 's');
+              break;
+            }
+          }
+        }
+        // 5b. Live caption sponsor-cue detector (only when SponsorBlock has 0 sponsor segments on this new video)
+        if (!hasSbSponsor) {
+          const capEl = document.querySelector('.ytp-caption-window-container, .caption-window, ytlr-caption-window-renderer');
+          const capTxt = capEl ? (capEl.innerText || '').trim().toLowerCase() : '';
+          const sponsorCue = /(this video is sponsored by|today'?s sponsor is|thanks to .{2,28} for sponsoring|brought to you by .{2,28}|use (my |our )?(code|link) .{1,20} (for|to get)|check out .{2,25} using the link|nordvpn|surfshark|incogni|ground news|betterhelp|factor meals|manscaped|raycon|ridge wallet|raid shadow legends)/i;
+          if (capTxt && sponsorCue.test(capTxt)) {
+            const nowMs = Date.now();
+            if (!window.__ttzLastCapSkipTs || (nowMs - window.__ttzLastCapSkipTs) > 12000) {
+              window.__ttzLastCapSkipTs = nowMs;
+              const jumpTo = Math.min(vid2.duration - 1, ct + 20);
+              vid2.currentTime = jumpTo;
+              ttzLog('caption_sponsor_skipped', 'Cue: "' + capTxt.slice(0, 70) + '" -> +20s');
+              try {
+                const pats = JSON.parse(localStorage.getItem('ttz_sponsor_patterns') || '{}');
+                const chName = (document.querySelector('ytlr-video-owner-renderer, [class*="owner-name"]')?.innerText || 'unknown').trim().slice(0, 40);
+                pats[chName] = (pats[chName] || 0) + 1;
+                localStorage.setItem('ttz_sponsor_patterns', JSON.stringify(pats));
+              } catch (e) {}
+            }
+          }
+        }
+      }
     } catch (e) {}
   }, 1000);
+
+  // Capture YouTube Video Chapters from JSON.parse for instant Sponsor Chapter auto-skip on brand-new uploads
+  const _origParseTTZ = JSON.parse;
+  const _sponsorChRe = /\b(sponsor|sponsored|ad\s*read|paid\s*promo|promotion|nordvpn|surfshark|expressvpn|incogni|aura|ground\s*news|betterhelp|factor|squarespace|audible|brilliant|manscaped|raycon|ridge|raid\s*shadow|shopify|skillshare|hellofresh|athletic\s*greens|ag1)\b/i;
+  JSON.parse = function() {
+    const res = _origParseTTZ.apply(this, arguments);
+    try {
+      const markers = res && res.playerOverlays && res.playerOverlays.playerOverlayRenderer &&
+        res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer &&
+        res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer &&
+        res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer.playerBar &&
+        res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer.playerBar.multiMarkersPlayerBarRenderer &&
+        res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer.playerBar.multiMarkersPlayerBarRenderer.markersMap;
+      if (Array.isArray(markers)) {
+        const chList = [];
+        for (const m of markers) {
+          const arr = m && m.value && m.value.chapters;
+          if (!Array.isArray(arr)) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const c = arr[i] && arr[i].chapterRenderer;
+            if (!c) continue;
+            const title = (c.title && (c.title.simpleText || (c.title.runs && c.title.runs.map(r => r.text).join('')))) || '';
+            const start = Number(c.timeRangeStartMillis || 0) / 1000;
+            const nextC = arr[i + 1] && arr[i + 1].chapterRenderer;
+            const end = nextC ? (Number(nextC.timeRangeStartMillis || 0) / 1000) : (start + 60);
+            if (_sponsorChRe.test(title)) {
+              chList.push({ title, start, end, isSponsor: true });
+            }
+          }
+        }
+        if (chList.length) window.__ttzChapters = chList;
+      }
+    } catch (e) {}
+    return res;
+  };
 })();
