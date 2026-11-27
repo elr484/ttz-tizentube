@@ -9,11 +9,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz10';
+  const VER = '1.15.2-ttz11';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -119,6 +120,14 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         if (now - lastSbCheck > 15000) {
           lastSbCheck = now;
           ttzLog('config_healed', 'Cleared live SponsorBlock manualSkippableCategories');
+        }
+      }
+      // 4. Fix 0px SponsorBlock play-bar overlay height on newer YouTube TV progress bars so colored markers stay visible!
+      if (window.sponsorblock && window.sponsorblock.segmentsoverlay) {
+        const ov = window.sponsorblock.segmentsoverlay;
+        if (ov.style && (ov.style.height === '0px' || !ov.style.height)) {
+          ov.style.setProperty('height', '6px', 'important');
+          ov.style.setProperty('min-height', '6px', 'important');
         }
       }
       // 3. Bulletproof 1s SponsorBlock currentTime watchdog (fixes Tizen 9 dropping long 20-30m setTimeout timers!)
