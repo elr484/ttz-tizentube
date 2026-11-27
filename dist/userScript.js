@@ -8,11 +8,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz9';
+  const VER = '1.15.2-ttz10';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -120,6 +121,22 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
           ttzLog('config_healed', 'Cleared live SponsorBlock manualSkippableCategories');
         }
       }
+      // 3. Bulletproof 1s SponsorBlock currentTime watchdog (fixes Tizen 9 dropping long 20-30m setTimeout timers!)
+      const vid2 = document.querySelector('video');
+      if (vid2 && !vid2.paused && window.sponsorblock && Array.isArray(window.sponsorblock.segments)) {
+        const ct = vid2.currentTime;
+        const skipCats = window.sponsorblock.skippableCategories || ['sponsor','selfpromo','intro','outro','interaction','filler','preview','music_offtopic'];
+        for (const seg of window.sponsorblock.segments) {
+          if (!seg || !Array.isArray(seg.segment) || seg.actionType !== 'skip') continue;
+          if (!skipCats.includes(seg.category)) continue;
+          const sStart = seg.segment[0], sEnd = seg.segment[1];
+          if ((sEnd - sStart) >= 1.5 && ct >= sStart && ct < (sEnd - 0.8)) {
+            vid2.currentTime = sEnd;
+            ttzLog('sponsor_skipped', seg.category + ' ' + Math.round(sStart) + 's->' + Math.round(sEnd) + 's');
+            break;
+          }
+        }
+      }
     } catch (e) {}
-  }, 1500);
+  }, 1000);
 })();
