@@ -7,20 +7,20 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz8';
-  const LOG_URL = 'http://192.168.50.2:5000/api/tv/tizentube/log';
+  const VER = '1.15.2-ttz9';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
-      fetch(LOG_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event, version: VER, detail: String(detail || ''), video_id: m ? m[1] : '' })
-      }).catch(() => {});
+      const entry = { ts: new Date().toISOString(), event, version: VER, detail: String(detail || ''), video_id: m ? m[1] : '' };
+      const arr = JSON.parse(localStorage.getItem('ttz_shield_log') || '[]');
+      arr.push(entry);
+      if (arr.length > 100) arr.splice(0, arr.length - 100);
+      localStorage.setItem('ttz_shield_log', JSON.stringify(arr));
     } catch (e) {}
   }
 
