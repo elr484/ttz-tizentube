@@ -11,11 +11,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz12';
+  const VER = '1.15.2-ttz13';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -153,7 +154,7 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         const sbSegs = (window.sponsorblock && Array.isArray(window.sponsorblock.segments)) ? window.sponsorblock.segments : [];
         const hasSbSponsor = sbSegs.some(s => s && (s.category === 'sponsor' || s.category === 'selfpromo'));
         // 5a. Auto-skip any YouTube Chapter explicitly titled Sponsor / Ad / known sponsor brand
-        if (!hasSbSponsor && window.__ttzChapters && window.__ttzChapters.length) {
+        if (window.__ttzChapters && window.__ttzChapters.length) {
           for (const ch of window.__ttzChapters) {
             if (ch.isSponsor && ct >= ch.start && ct < (ch.end - 0.8)) {
               vid2.currentTime = ch.end;
@@ -162,24 +163,13 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
             }
           }
         }
-        // 5b. Live caption sponsor-cue detector (only when SponsorBlock has 0 sponsor segments on this new video)
-        if (!hasSbSponsor) {
-          const capEl = document.querySelector('.ytp-caption-window-container, .caption-window, ytlr-caption-window-renderer');
-          const capTxt = capEl ? (capEl.innerText || '').trim().toLowerCase() : '';
-          const sponsorCue = /(this video is sponsored by|today'?s sponsor is|thanks to .{2,28} for sponsoring|brought to you by .{2,28}|use (my |our )?(code|link) .{1,20} (for|to get)|check out .{2,25} using the link|nordvpn|surfshark|incogni|ground news|betterhelp|factor meals|manscaped|raycon|ridge wallet|raid shadow legends)/i;
-          if (capTxt && sponsorCue.test(capTxt)) {
-            const nowMs = Date.now();
-            if (!window.__ttzLastCapSkipTs || (nowMs - window.__ttzLastCapSkipTs) > 12000) {
-              window.__ttzLastCapSkipTs = nowMs;
-              const jumpTo = Math.min(vid2.duration - 1, ct + 20);
-              vid2.currentTime = jumpTo;
-              ttzLog('caption_sponsor_skipped', 'Cue: "' + capTxt.slice(0, 70) + '" -> +20s');
-              try {
-                const pats = JSON.parse(localStorage.getItem('ttz_sponsor_patterns') || '{}');
-                const chName = (document.querySelector('ytlr-video-owner-renderer, [class*="owner-name"]')?.innerText || 'unknown').trim().slice(0, 40);
-                pats[chName] = (pats[chName] || 0) + 1;
-                localStorage.setItem('ttz_sponsor_patterns', JSON.stringify(pats));
-              } catch (e) {}
+        // 5b. Auto-skip background transcript-detected sponsor segments (works with CC OFF & widens late SponsorBlock tags!)
+        if (window.__ttzTranscriptSegs && window.__ttzTranscriptSegs.length) {
+          for (const ts of window.__ttzTranscriptSegs) {
+            if (ct >= ts.start && ct < (ts.end - 0.8)) {
+              vid2.currentTime = ts.end;
+              ttzLog('transcript_sponsor_skipped', ts.cue + ' ' + Math.round(ts.start) + 's->' + Math.round(ts.end) + 's');
+              break;
             }
           }
         }
@@ -187,12 +177,78 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
     } catch (e) {}
   }, 1000);
 
-  // Capture YouTube Video Chapters from JSON.parse for instant Sponsor Chapter auto-skip on brand-new uploads
+  // Background Transcript Sponsor Analyzer (fetches English auto-captions silently with CC OFF!)
+  const _sponsorCueRe = /(this video is sponsored by|today'?s sponsor is|thanks to .{2,28} for sponsoring|brought to you by .{2,28}|sponsored by .{2,25}|use (my |our )?(promo )?code .{1,20} (for|to get)|check out .{2,25} using (my |the )?link|nordvpn|surfshark|expressvpn|incogni|ground news|betterhelp|factor meals|manscaped|raycon|ridge wallet|raid shadow legends|athletic greens|hellofresh|squarespace|skillshare)/i;
+  let _lastAnalyzedCapUrl = '';
+  async function analyzeBackgroundTranscript(baseUrl, vidId) {
+    if (!baseUrl || baseUrl === _lastAnalyzedCapUrl) return;
+    _lastAnalyzedCapUrl = baseUrl;
+    window.__ttzTranscriptSegs = [];
+    try {
+      const url = baseUrl.includes('fmt=') ? baseUrl : (baseUrl + '&fmt=json3');
+      const data = await (await fetch(url)).json();
+      const events = Array.isArray(data && data.events) ? data.events : [];
+      const hits = [];
+      for (const ev of events) {
+        if (!ev || !Array.isArray(ev.segs) || typeof ev.tStartMs !== 'number') continue;
+        const txt = ev.segs.map(x => x.utf8 || '').join('').replace(/\s+/g, ' ').trim();
+        if (!txt) continue;
+        const m = txt.match(_sponsorCueRe);
+        if (m) {
+          hits.push({ t: ev.tStartMs / 1000, cue: m[0].slice(0, 36) });
+        }
+      }
+      if (!hits.length) return;
+      // Wait briefly for SponsorBlock to load segments, then widen any late SB tag OR create synthetic skip windows
+      setTimeout(() => {
+        try {
+          const sbSegs = (window.sponsorblock && Array.isArray(window.sponsorblock.segments)) ? window.sponsorblock.segments : [];
+          const synthetic = [];
+          for (const h of hits) {
+            // Check if this spoken sponsor cue starts 2s-45s BEFORE an existing SponsorBlock sponsor tag -> widen start!
+            const nearSb = sbSegs.find(s => s && (s.category === 'sponsor' || s.category === 'selfpromo') && Array.isArray(s.segment) && h.t < s.segment[0] && (s.segment[0] - h.t) <= 45);
+            if (nearSb) {
+              const oldStart = nearSb.segment[0];
+              nearSb.segment[0] = Math.max(0, h.t - 1);
+              ttzLog('sb_tag_widened', h.cue + ' widened ' + Math.round(oldStart) + 's->' + Math.round(nearSb.segment[0]) + 's');
+              continue;
+            }
+            // Otherwise if already inside an existing SB segment, skip creating duplicate
+            const insideSb = sbSegs.some(s => s && Array.isArray(s.segment) && h.t >= (s.segment[0] - 2) && h.t <= (s.segment[1] + 2));
+            if (insideSb) continue;
+            // Cluster nearby cues within 50s into one clean skip window
+            const prev = synthetic.length ? synthetic[synthetic.length - 1] : null;
+            if (prev && (h.t - prev.end) <= 50) {
+              prev.end = Math.max(prev.end, h.t + 18);
+            } else {
+              synthetic.push({ start: Math.max(0, h.t - 1), end: h.t + 35, cue: h.cue });
+            }
+          }
+          window.__ttzTranscriptSegs = synthetic;
+          if (synthetic.length) {
+            ttzLog('transcript_sponsors_armed', synthetic.length + ' untagged sponsor window(s) armed for ' + (vidId || 'video'));
+          }
+        } catch (e) {}
+      }, 2500);
+    } catch (e) {}
+  }
+
+  // Capture YouTube Video Chapters + Background Caption Track URL from JSON.parse
   const _origParseTTZ = JSON.parse;
   const _sponsorChRe = /\b(sponsor|sponsored|ad\s*read|paid\s*promo|promotion|nordvpn|surfshark|expressvpn|incogni|aura|ground\s*news|betterhelp|factor|squarespace|audible|brilliant|manscaped|raycon|ridge|raid\s*shadow|shopify|skillshare|hellofresh|athletic\s*greens|ag1)\b/i;
   JSON.parse = function() {
     const res = _origParseTTZ.apply(this, arguments);
     try {
+      // 1. Background English caption track for automatic sponsor detection (CC stays OFF!)
+      const capTracks = res && res.captions && res.captions.playerCaptionsTracklistRenderer && res.captions.playerCaptionsTracklistRenderer.captionTracks;
+      if (Array.isArray(capTracks) && capTracks.length) {
+        const en = capTracks.find(t => t && /^en/i.test(t.languageCode || '')) || capTracks[0];
+        const vidId = res.videoDetails && res.videoDetails.videoId;
+        if (en && en.baseUrl) {
+          analyzeBackgroundTranscript(en.baseUrl, vidId);
+        }
+      }
+      // 2. YouTube Video Chapters for instant Sponsor Chapter auto-skip
       const markers = res && res.playerOverlays && res.playerOverlays.playerOverlayRenderer &&
         res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer &&
         res.playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer &&
