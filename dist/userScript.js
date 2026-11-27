@@ -6,11 +6,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz7';
+  const VER = '1.15.2-ttz8';
   const LOG_URL = 'http://192.168.50.2:5000/api/tv/tizentube/log';
   function ttzLog(event, detail) {
     try {
@@ -48,6 +49,17 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
       [class*="surface-page"] {
         background: transparent !important;
         background-color: transparent !important;
+      }
+      div.TYE3Ed,
+      ytlr-tv-secondary-nav-renderer > div {
+        background: rgba(20, 7, 46, 0.52) !important;
+        background-color: rgba(20, 7, 46, 0.52) !important;
+        border-radius: 16px !important;
+      }
+      div.geClSe,
+      ytlr-guide-response > div {
+        background: rgba(11, 4, 26, 0.72) !important;
+        background-color: rgba(11, 4, 26, 0.72) !important;
       }
     `;
     (document.head || document.documentElement).appendChild(st);
