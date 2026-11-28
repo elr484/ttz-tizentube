@@ -14,11 +14,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz15';
+  const VER = '1.15.2-ttz16';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -66,22 +67,22 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         background: rgba(11, 4, 26, 0.72) !important;
         background-color: rgba(11, 4, 26, 0.72) !important;
       }
-      /* High-Visibility Glowing Electric Cyan Selection Box (replaces hard-to-see white border on TV!) */
-      ytlr-tile-renderer.zylon-focus,
-      ytlr-tile-renderer[focused],
-      .ytlr-tile-renderer--focused,
-      ytlr-button-renderer.zylon-focus,
-      ytlr-button-renderer[focused],
-      .zylon-focus > ytlr-thumbnail-details,
-      [class*="tile-renderer"][class*="focused"] ytlr-thumbnail-details,
-      .yt-focus-ring,
-      yt-focus-ring,
-      .zylon-focus {
+      /* Surgical Leaf-Only Cyan Selection Box (ONLY video thumbnails, buttons & nav items — NEVER full-screen containers/rows!) */
+      ytlr-tile-renderer.zylon-focus ytlr-thumbnail-details {
         outline: 3.5px solid #00f0ff !important;
         outline-offset: 2px !important;
-        border-color: #00f0ff !important;
-        box-shadow: 0 0 0 3px #00f0ff, 0 0 22px 5px rgba(0, 240, 255, 0.72) !important;
+        box-shadow: 0 0 18px 3px rgba(0, 240, 255, 0.72) !important;
         border-radius: 12px !important;
+      }
+      ytlr-button-renderer.zylon-focus,
+      ytlr-toggle-button-renderer.zylon-focus,
+      ytlr-guide-entry-renderer.zylon-focus,
+      ytlr-tv-secondary-nav-item-renderer.zylon-focus,
+      ytlr-chip-cloud-chip-renderer.zylon-focus {
+        outline: 3px solid #00f0ff !important;
+        outline-offset: 1px !important;
+        box-shadow: 0 0 14px 2px rgba(0, 240, 255, 0.65) !important;
+        border-radius: 999px !important;
       }
       /* Vivid Cyan Progress Bar & Scrubber Knob */
       .ytlr-progress-bar__played,
