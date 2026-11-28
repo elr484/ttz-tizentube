@@ -16,11 +16,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz16';
+  const VER = '1.15.2-ttz17';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -69,9 +70,25 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         background-color: rgba(11, 4, 26, 0.72) !important;
       }
       /* Surgical Leaf-Only Cyan Selection Box (ONLY video thumbnails, buttons & nav items — NEVER full-screen containers/rows!) */
+      /* Replace YouTube TV native 9px almost-white ::after ring on the focused video thumbnail.
+         Native uses .HTybHf.gQJ8Cf .DC68Tc.DC68Tc::after { border-color: rgb(241,241,241) !important; }
+         so this selector must beat that specificity. Leaf tile only — never rows/player. */
+      ytlr-tile-renderer.zylon-focus.HTybHf.gQJ8Cf ytlr-tile-header-renderer.DC68Tc.DC68Tc::after,
+      ytlr-tile-renderer.zylon-focus ytlr-tile-header-renderer::after {
+        display: block !important;
+        border-width: 4px !important;
+        border-style: solid !important;
+        border-color: #00f0ff !important;
+        border-top-color: #00f0ff !important;
+        border-right-color: #00f0ff !important;
+        border-bottom-color: #00f0ff !important;
+        border-left-color: #00f0ff !important;
+        box-shadow: 0 0 18px 3px rgba(0, 240, 255, 0.72) !important;
+        border-radius: 12px !important;
+      }
       ytlr-tile-renderer.zylon-focus ytlr-thumbnail-details {
-        outline: 3.5px solid #00f0ff !important;
-        outline-offset: 2px !important;
+        outline: none !important;
+        outline-offset: 0 !important;
         box-shadow: 0 0 18px 3px rgba(0, 240, 255, 0.72) !important;
         border-radius: 12px !important;
       }
