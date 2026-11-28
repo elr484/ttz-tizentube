@@ -15,6 +15,7 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
@@ -74,15 +75,15 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         box-shadow: 0 0 18px 3px rgba(0, 240, 255, 0.72) !important;
         border-radius: 12px !important;
       }
-      ytlr-button-renderer.zylon-focus,
-      ytlr-toggle-button-renderer.zylon-focus,
-      ytlr-guide-entry-renderer.zylon-focus,
-      ytlr-tv-secondary-nav-item-renderer.zylon-focus,
+      ytlr-guide-entry-renderer.zylon-focus ytlr-button,
+      ytlr-button-renderer.zylon-focus ytlr-button,
+      ytlr-toggle-button-renderer.zylon-focus ytlr-button,
+      ytlr-tv-secondary-nav-item-renderer.zylon-focus ytlr-button,
       ytlr-chip-cloud-chip-renderer.zylon-focus {
         outline: 3px solid #00f0ff !important;
         outline-offset: 1px !important;
-        box-shadow: 0 0 14px 2px rgba(0, 240, 255, 0.65) !important;
-        border-radius: 999px !important;
+        box-shadow: 0 0 16px 3px rgba(0, 240, 255, 0.72) !important;
+        border-radius: 14px !important;
       }
       /* Vivid Cyan Progress Bar & Scrubber Knob */
       .ytlr-progress-bar__played,
