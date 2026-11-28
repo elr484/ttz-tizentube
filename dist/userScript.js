@@ -13,11 +13,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz14';
+  const VER = '1.15.2-ttz15';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -64,6 +65,33 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
       ytlr-guide-response > div {
         background: rgba(11, 4, 26, 0.72) !important;
         background-color: rgba(11, 4, 26, 0.72) !important;
+      }
+      /* High-Visibility Glowing Electric Cyan Selection Box (replaces hard-to-see white border on TV!) */
+      ytlr-tile-renderer.zylon-focus,
+      ytlr-tile-renderer[focused],
+      .ytlr-tile-renderer--focused,
+      ytlr-button-renderer.zylon-focus,
+      ytlr-button-renderer[focused],
+      .zylon-focus > ytlr-thumbnail-details,
+      [class*="tile-renderer"][class*="focused"] ytlr-thumbnail-details,
+      .yt-focus-ring,
+      yt-focus-ring,
+      .zylon-focus {
+        outline: 3.5px solid #00f0ff !important;
+        outline-offset: 2px !important;
+        border-color: #00f0ff !important;
+        box-shadow: 0 0 0 3px #00f0ff, 0 0 22px 5px rgba(0, 240, 255, 0.72) !important;
+        border-radius: 12px !important;
+      }
+      /* Vivid Cyan Progress Bar & Scrubber Knob */
+      .ytlr-progress-bar__played,
+      .ytp-play-progress {
+        background-color: #00f0ff !important;
+      }
+      .ytlr-progress-bar__playhead,
+      .ytp-scrubber-button {
+        background-color: #fde047 !important;
+        box-shadow: 0 0 12px #00f0ff !important;
       }
     `;
     (document.head || document.documentElement).appendChild(st);
