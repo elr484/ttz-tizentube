@@ -12,11 +12,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
 
 
 
+
 /* TTZ_SHIELD_V1 */
 ;(function(){
   if (window.__ttzShieldActive) return;
   window.__ttzShieldActive = true;
-  const VER = '1.15.2-ttz13';
+  const VER = '1.15.2-ttz14';
   function ttzLog(event, detail) {
     try {
       const m = (location.hash || location.search || '').match(/[?&]v=([^&]+)/);
@@ -39,7 +40,6 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
           radial-gradient(ellipse at 16% 12%, rgba(168, 85, 247, 0.28) 0%, transparent 52%),
           radial-gradient(ellipse at 86% 86%, rgba(139, 92, 246, 0.24) 0%, transparent 55%),
           linear-gradient(155deg, #070412 0%, #15082e 50%, #1d0a3d 100%) !important;
-        background-attachment: fixed !important;
       }
       #container,
       ytlr-browse-response,
@@ -100,15 +100,15 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
   let lastSbCheck = 0;
   setInterval(() => {
     try {
-      injectTtzTheme();
+      const vid2 = document.querySelector('video');
+      if (!vid2 || vid2.readyState === 0) return;
       const adEl = document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, ytlr-ad-overlay-renderer');
       if (adEl) {
-        const vid = document.querySelector('video');
         const skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, [aria-label*="Skip Ad"], [aria-label*="Skip ad"]');
         if (skipBtn && typeof skipBtn.click === 'function') skipBtn.click();
-        if (vid && isFinite(vid.duration) && vid.duration > 0 && vid.currentTime < vid.duration - 0.3) {
-          vid.muted = true;
-          vid.currentTime = Math.max(0, vid.duration - 0.1);
+        if (isFinite(vid2.duration) && vid2.duration > 0 && vid2.currentTime < vid2.duration - 0.3) {
+          vid2.muted = true;
+          vid2.currentTime = Math.max(0, vid2.duration - 0.1);
         }
         const now = Date.now();
         if (now - lastAdKillTs > 8000) {
@@ -133,8 +133,7 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
         }
       }
       // 3. Bulletproof 1s SponsorBlock currentTime watchdog (fixes Tizen 9 dropping long 20-30m setTimeout timers!)
-      const vid2 = document.querySelector('video');
-      if (vid2 && !vid2.paused && window.sponsorblock && Array.isArray(window.sponsorblock.segments)) {
+      if (!vid2.paused && window.sponsorblock && Array.isArray(window.sponsorblock.segments)) {
         const ct = vid2.currentTime;
         const skipCats = window.sponsorblock.skippableCategories || ['sponsor','selfpromo','intro','outro','interaction','filler','preview','music_offtopic'];
         for (const seg of window.sponsorblock.segments) {
@@ -177,11 +176,12 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
     } catch (e) {}
   }, 1000);
 
-  // Background Transcript Sponsor Analyzer (fetches English auto-captions silently with CC OFF!)
-  const _sponsorCueRe = /(this video is sponsored by|today'?s sponsor is|thanks to .{2,28} for sponsoring|brought to you by .{2,28}|sponsored by .{2,25}|use (my |our )?(promo )?code .{1,20} (for|to get)|check out .{2,25} using (my |the )?link|nordvpn|surfshark|expressvpn|incogni|ground news|betterhelp|factor meals|manscaped|raycon|ridge wallet|raid shadow legends|athletic greens|hellofresh|squarespace|skillshare)/i;
+  // Background Transcript Sponsor Analyzer (fetches English auto-captions silently with CC OFF — 2-event sliding window!)
+  const _sponsorCueRe = /(this video is sponsored by|today'?s sponsor is|thanks to .{2,28} for sponsoring|brought to you by .{2,28}|sponsored by .{2,25}|use (my |our )?(promo )?code .{1,20} (for|to get)|check out .{2,25} using (my |the )?link|link in the description.{0,25}(discount|off|free trial)|nordvpn|surfshark|expressvpn|incogni|ground news|betterhelp|factor meals|manscaped|raycon|ridge wallet|raid shadow legends|athletic greens|hellofresh|squarespace|skillshare|audible|brilliant\.org|delete\s*me|aura\s+protection)/i;
   let _lastAnalyzedCapUrl = '';
   async function analyzeBackgroundTranscript(baseUrl, vidId) {
     if (!baseUrl || baseUrl === _lastAnalyzedCapUrl) return;
+    if (!(location.hash || '').includes('/watch')) return; // Skip home-screen hover previews for faster TV load times!
     _lastAnalyzedCapUrl = baseUrl;
     window.__ttzTranscriptSegs = [];
     try {
@@ -189,14 +189,20 @@ var e,t,i="function"==typeof Symbol?Symbol:{},n=i.iterator||"@@iterator",a=i.toS
       const data = await (await fetch(url)).json();
       const events = Array.isArray(data && data.events) ? data.events : [];
       const hits = [];
+      let prevT = 0, prevTxt = '';
       for (const ev of events) {
         if (!ev || !Array.isArray(ev.segs) || typeof ev.tStartMs !== 'number') continue;
+        const t = ev.tStartMs / 1000;
         const txt = ev.segs.map(x => x.utf8 || '').join('').replace(/\s+/g, ' ').trim();
         if (!txt) continue;
-        const m = txt.match(_sponsorCueRe);
-        if (m) {
-          hits.push({ t: ev.tStartMs / 1000, cue: m[0].slice(0, 36) });
+        const comb = (t - prevT) <= 6 ? (prevTxt + ' ' + txt).trim() : txt;
+        const m = comb.match(_sponsorCueRe);
+        if (m && !(hits.length && (t - hits[hits.length - 1].t) < 4)) {
+          const hitT = txt.match(_sponsorCueRe) ? t : prevT;
+          hits.push({ t: hitT, cue: m[0].slice(0, 36) });
         }
+        prevT = t;
+        prevTxt = txt;
       }
       if (!hits.length) return;
       // Wait briefly for SponsorBlock to load segments, then widen any late SB tag OR create synthetic skip windows
